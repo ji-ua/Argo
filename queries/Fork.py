@@ -129,36 +129,30 @@ def export(file_name, dir_path):
         url = node["url"]
         createdAt = node["createdAt"]
 
-        commitCountAfterFork = countCommit(nameWithOwner, createdAt)
-        node["commitCountAfterFork"] = commitCountAfterFork
-            
-        json_file_path = os.path.join(dir_path, "json",str(file_name)+".json")
-        retry_limit = 5
-        retry_count = 0
-
-        while retry_count < retry_limit:
-            try:
-                # エラーが起きうる可能性のあるコード
-                committedDate = node["defaultBranchRef"]["target"]["committedDate"]
-                break
-            except TypeError:
-                if os.path.isfile(json_file_path):
-                    os.remove(json_file_path)
-                retry_count += 1
-                print(f"Error occurred at export(), retrying... ({retry_count}/{retry_limit})")
-                # 待機時間を設ける
-                time.sleep(1)  # 1秒待機
-        else:
-            print(f"Error occurred {retry_limit} times. Stop retrying.")
-        
         created_utc = createdAt.replace("Z", "")
         d = datetime.datetime.fromisoformat(created_utc)
         createdt = d.strftime("%Y-%m/%d %H:%M:%S")
 
-        committed_utc = committedDate.replace("Z", "")
-        d = datetime.datetime.fromisoformat(committed_utc)
-        committedt = d.strftime("%Y-%m/%d %H:%M:%S")
+        if node["defaultBranchRef"] != None:
+            committedDate = node["defaultBranchRef"]["target"]["committedDate"]
 
+            committed_utc = committedDate.replace("Z", "")
+            d = datetime.datetime.fromisoformat(committed_utc)
+            committedt = d.strftime("%Y-%m/%d %H:%M:%S")
+
+            commitCountAfterFork = countCommit(nameWithOwner, createdAt)
+        else:
+            print()
+            print("defaultBranchRef = None")
+            print(f"\"{nameWithOwner}\" is probably empty.")
+            print(f"Check \"{url}\".")
+            print()
+            committedDate = ""
+            committedt = ""
+            commitCountAfterFork = -1
+
+        node["commitCountAfterFork"] = commitCountAfterFork
+            
         temp_n = [nameWithOwner, url, createdt, committedt, commitCountAfterFork]
         nodes.append(temp_n)
 
