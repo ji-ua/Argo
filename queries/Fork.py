@@ -193,7 +193,41 @@ def countCommit(nameWithOwner, createdAt):
     }
     response = requests.request("POST", url, data=payload, headers=headers)
     json_data = response.json()
-    return json_data["data"]["repository"]["defaultBranchRef"]["target"]["history"]["totalCount"]
+
+        # エラーハンドリング
+    retry_limit = 5
+    retry_count = 0
+
+    while retry_count < retry_limit:
+        try:
+                totalCount = json_data["data"]["repository"]["defaultBranchRef"]["target"]["history"]["totalCount"]
+                print(nameWithOwner)
+                print(f"totalCount = {totalCount}")
+                print()
+                break
+        except TypeError:
+            retry_count += 1
+            print(f"Type Error occurred at countCommit(), retrying... ({retry_count}/{retry_limit})")
+            response = requests.request("POST", url, data=payload, headers=headers)
+            json_data = response.json()
+            # 待機時間
+            time.sleep(1)
+    else:
+        print(f"Type Error occurred at countCommit {retry_limit} times. Stop retrying.")
+        print()
+        print("json_data is None.")
+        print(f"json_data = {json_data}")
+        print()
+        print(f"\"{nameWithOwner}\" is probably empty.")
+        print(f"Check out this url, https://github.com/{nameWithOwner} .")
+        print()
+        print(f"Set \"commitCountAfterFork\" of \"{nameWithOwner}\" to \"-1\" ")
+        print()
+        totalCount = -1
+
+
+    return totalCount
+
 
 def main(repository, make_path, dir_stored):
     start_time = time.perf_counter()
