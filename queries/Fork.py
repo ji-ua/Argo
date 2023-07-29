@@ -148,9 +148,9 @@ def export(file_name, dir_path):
             print(f"Check \"{url}\".")
             print()
             committedDate = ""
-            committed_utc = ""
+            committedt = ""
             commitCountAfterFork = -1
-            
+
         node["commitCountAfterFork"] = commitCountAfterFork
             
         temp_n = [nameWithOwner, url, createdt, committedt, commitCountAfterFork]
