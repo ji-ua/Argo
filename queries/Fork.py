@@ -102,7 +102,7 @@ def find(json_data, file_name, dir_path, data_cpl):
             if os.path.isfile(json_file_path):
                 os.remove(json_file_path)
             retry_count += 1
-            print(f"Error occurred, retrying... ({retry_count}/{retry_limit})")
+            print(f"Error occurred at find(), retrying... ({retry_count}/{retry_limit})")
             # 待機時間を設ける
             time.sleep(1)  # 1秒待機
     else:
@@ -145,7 +145,7 @@ def export(file_name, dir_path):
                 if os.path.isfile(json_file_path):
                     os.remove(json_file_path)
                 retry_count += 1
-                print(f"Error occurred, retrying... ({retry_count}/{retry_limit})")
+                print(f"Error occurred at export(), retrying... ({retry_count}/{retry_limit})")
                 # 待機時間を設ける
                 time.sleep(1)  # 1秒待機
         else:
