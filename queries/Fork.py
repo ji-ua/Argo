@@ -217,14 +217,15 @@ def countCommit(nameWithOwner, createdAt):
             break
         except TypeError:
             retry_count += 1
-            print(f"TypeError occurred at countCommit, retrying... ({retry_count}/{retry_limit})")
+            print(f"TypeError occurred at countCommit(), retrying... ({retry_count}/{retry_limit})")
             print
         except KeyError:
             retry_count += 1
-            print(f"KeyError occurred at countCommit, retrying... ({retry_count}/{retry_limit})")
+            print(f"KeyError occurred at countCommit(), retrying... ({retry_count}/{retry_limit})")
     else:
         print(f"Error occerred {retry_limit} times. Stobp retrying.")
         print()
+        print(f"json_data:{json_data}")
         return -1
 
     return totalCount
