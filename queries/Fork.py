@@ -55,14 +55,31 @@ def request(repository, dir_path, payload_1, end_cursor, has_next_page, file_num
             "Authorization": "bearer " + api_key,
             "Content-Type": "application/json",
         }
-        response = requests.request("POST", url, data=payload, headers=headers)
-        res = requests.get(url)
-        # print("status code : "+str(res.status_code)) ## Output status code
-        json_data = response.json()
-        data = find(json_data, str(file_num), dir_path, data_cpl)
-        file_nextnum = data[0]
-        Download_per.download_per(data[3], int(file_nextnum))
-        export(file_nextnum, dir_path)  # Convert to CSV file
+
+        retry_limit = 5
+        retry_count = 0
+
+        while retry_count < retry_limit:
+            response = requests.request("POST", url, data=payload, headers=headers)
+            json_data = response.json()
+            data = find(json_data, str(file_num), dir_path, data_cpl)
+            if data is not None:
+                file_nextnum = data[0]
+                Download_per.download_per(data[3], int(file_nextnum))
+                export(file_nextnum, dir_path)  # Convert to CSV file
+                break
+            else:
+                retry_count += 1
+                print("data is None!")
+                print(f"retrying request ... ({retry_count}/{retry_limit})")
+                print()
+        else:
+            print(f"Error occerred {retry_limit} times. Stobp retrying.")
+            print()
+            print(f"Input repository, \"{repository}\" may be not exist.")
+            exit(1)
+                
+
         return request(repository, dir_path, payload_1, data[1], data[2], file_num)
     else:
         return
@@ -90,26 +107,28 @@ def find(json_data, file_name, dir_path, data_cpl):
     json_dict = json.load(f)
     
     json_file_path = os.path.join(dir_path, "json",str(file_name)+".json")
-    retry_limit = 5
-    retry_count = 0
 
-    while retry_count < retry_limit:
-        try:
-            # エラーが起きうる可能性のあるコード
-            totalCount = json_dict["data"]["repository"]["forks"]["totalCount"]
-            break
-        except TypeError:
-            if os.path.isfile(json_file_path):
-                os.remove(json_file_path)
-            retry_count += 1
-            print(f"Error occurred at find(), retrying... ({retry_count}/{retry_limit})")
-            # 待機時間を設ける
-            time.sleep(1)  # 1秒待機
-    else:
-        print(f"Error occurred {retry_limit} times. Stop retrying.")
+    try:
+        # エラーが起きうる可能性のあるコード
+        totalCount = json_dict["data"]["repository"]["forks"]["totalCount"]
+        end_cursor = json_dict["data"]["repository"]["forks"]["pageInfo"]["endCursor"]
+        has_next_page = json_dict["data"]["repository"]["forks"]["pageInfo"]["hasNextPage"]
+    except TypeError:
+        if os.path.isfile(json_file_path):
+            os.remove(json_file_path)
+        print(f"TypeError occurred at find().")
+        print(f"json_dict:{json_dict}")
+        print(f"Deleteted \"{json_file_path}\".")
+        return None
+    except KeyError:
+        if os.path.isfile(json_file_path):
+            os.remove(json_file_path)
+        print(f"KeyError occurred at find().")
+        print(f"json_dict:{json_dict}")
+        print(f"Deleteted {json_file_path}.")
+        print()
+        return None
 
-    end_cursor = json_dict["data"]["repository"]["forks"]["pageInfo"]["endCursor"]
-    has_next_page = json_dict["data"]["repository"]["forks"]["pageInfo"]["hasNextPage"]
     return file_nextnum, end_cursor, has_next_page, totalCount
 
 
@@ -143,9 +162,10 @@ def export(file_name, dir_path):
             commitCountAfterFork = countCommit(nameWithOwner, createdAt)
         else:
             print()
-            print("defaultBranchRef = None")
+            print("TypeError occured at export().")
+            print("defaultBranchRef is None.")
             print(f"\"{nameWithOwner}\" is probably empty.")
-            print(f"Check \"{url}\".")
+            print(f"Check {url}")
             print()
             committedDate = ""
             committedt = ""
@@ -185,9 +205,29 @@ def countCommit(nameWithOwner, createdAt):
         "Authorization": "bearer " + api_key,
         "Content-Type": "application/json",
     }
-    response = requests.request("POST", url, data=payload, headers=headers)
-    json_data = response.json()
-    return json_data["data"]["repository"]["defaultBranchRef"]["target"]["history"]["totalCount"]
+    
+    retry_limit = 5
+    retry_count = 0
+    
+    while retry_count < retry_limit:
+        try:
+            response = requests.request("POST", url, data=payload, headers=headers)
+            json_data = response.json()
+            totalCount = json_data["data"]["repository"]["defaultBranchRef"]["target"]["history"]["totalCount"]
+            break
+        except TypeError:
+            retry_count += 1
+            print(f"TypeError occurred at countCommit, retrying... ({retry_count}/{retry_limit})")
+            print
+        except KeyError:
+            retry_count += 1
+            print(f"KeyError occurred at countCommit, retrying... ({retry_count}/{retry_limit})")
+    else:
+        print(f"Error occerred {retry_limit} times. Stobp retrying.")
+        print()
+        return -1
+
+    return totalCount
 
 def main(repository, make_path, dir_stored):
     start_time = time.perf_counter()
