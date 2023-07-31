@@ -119,6 +119,7 @@ def find(json_data, file_name, dir_path, data_cpl):
         print(f"TypeError occurred at find().")
         print(f"json_dict:{json_dict}")
         print(f"Deleteted \"{json_file_path}\".")
+        print()
         return None
     except KeyError:
         if os.path.isfile(json_file_path):
@@ -223,9 +224,10 @@ def countCommit(nameWithOwner, createdAt):
             retry_count += 1
             print(f"KeyError occurred at countCommit(), retrying... ({retry_count}/{retry_limit})")
     else:
-        print(f"Error occerred {retry_limit} times. Stobp retrying.")
         print()
+        print(f"Error occerred {retry_limit} times. Stobp retrying.")
         print(f"json_data:{json_data}")
+        print()
         return -1
 
     return totalCount
