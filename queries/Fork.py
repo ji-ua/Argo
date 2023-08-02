@@ -62,6 +62,13 @@ def request(repository, dir_path, payload_1, end_cursor, has_next_page, file_num
         while retry_count < retry_limit:
             response = requests.request("POST", url, data=payload, headers=headers)
             json_data = response.json()
+
+            if 'errors' in json_data and isinstance(json_data['errors'], list) and 'type' in json_data['errors'][0] and json_data['errors'][0]['type'] == 'RATE_LIMITED':
+                print()
+                print(json_data["errors"][0]["message"])
+                print("To retry, wait at least one hour.")
+                exit(1) # プログラムを終了させる
+
             data = find(json_data, str(file_num), dir_path, data_cpl)
             if data is not None:
                 file_nextnum = data[0]
@@ -105,8 +112,6 @@ def find(json_data, file_name, dir_path, data_cpl):
         FileMake.jsonMake(json_data, file_nextnum, dir_path)
         f = open(os.path.join(dir_path, "json", file_nextnum + ".json"), "r")
     json_dict = json.load(f)
-    
-    json_file_path = os.path.join(dir_path, "json",str(file_name)+".json")
 
     try:
         # エラーが起きうる可能性のあるコード
@@ -114,20 +119,15 @@ def find(json_data, file_name, dir_path, data_cpl):
         end_cursor = json_dict["data"]["repository"]["forks"]["pageInfo"]["endCursor"]
         has_next_page = json_dict["data"]["repository"]["forks"]["pageInfo"]["hasNextPage"]
     except TypeError:
-        if os.path.isfile(json_file_path):
-            os.remove(json_file_path)
+        removeLastTwoJson(dir_path)
         print(f"TypeError occurred at find().")
         print(f"json_dict:{json_dict}")
-        print(f"Deleteted \"{json_file_path}\".")
         print()
         return None
     except KeyError:
-        if os.path.isfile(json_file_path):
-            os.remove(json_file_path)
+        removeLastTwoJson(dir_path)
         print(f"KeyError occurred at find().")
-        print(f"json_dict:{json_dict}")
-        print(f"Deleteted {json_file_path}.")
-        print()
+        print()                        
         return None
 
     return file_nextnum, end_cursor, has_next_page, totalCount
@@ -214,15 +214,24 @@ def countCommit(nameWithOwner, createdAt):
         try:
             response = requests.request("POST", url, data=payload, headers=headers)
             json_data = response.json()
+
+            if 'errors' in json_data and isinstance(json_data['errors'], list) and 'type' in json_data['errors'][0] and json_data['errors'][0]['type'] == 'RATE_LIMITED':
+                removeLastTwoJson(dir_path)
+                print()
+                print(json_data["errors"][0]["message"])
+                print("To retry, wait at least one hour.")
+                exit(1) # プログラムを終了させる
+            
             totalCount = json_data["data"]["repository"]["defaultBranchRef"]["target"]["history"]["totalCount"]
             break
         except TypeError:
             retry_count += 1
             print(f"TypeError occurred at countCommit(), retrying... ({retry_count}/{retry_limit})")
-            print
+            print(f"json_data:{json_data}")
         except KeyError:
             retry_count += 1
             print(f"KeyError occurred at countCommit(), retrying... ({retry_count}/{retry_limit})")
+            print(f"json_data:{json_data}")
     else:
         print()
         print(f"Error occerred {retry_limit} times. Stobp retrying.")
@@ -231,6 +240,32 @@ def countCommit(nameWithOwner, createdAt):
         return -1
 
     return totalCount
+
+def removeLastTwoJson(dir_path):
+    list_of_files = glob.glob(os.path.join(dir_path, "json", "*.json"))  # Get the list of files from the specified folder
+
+    if len(list_of_files) == 0:
+        file_nextnum = 2
+    else:  
+        file_intlist = []
+        for file in list_of_files:
+            filename, fileext = os.path.splitext(os.path.basename(file))
+            file_intlist.append(filename)
+        file_int = [int(s) for s in file_intlist]
+        file_nextnum = str(max(file_int) + 1)
+
+    json_file_path = os.path.join(dir_path, "json", str(int(file_nextnum) - 1) + ".json")
+    json_file_path_next =os.path.join(dir_path, "json", str(file_nextnum) + ".json")
+
+    if os.path.isfile(json_file_path):
+        os.remove(json_file_path)
+    if os.path.isfile(json_file_path_next):
+        os.remove(json_file_path_next)
+
+    print(f"Deleteted \"{json_file_path}\".")
+    print(f"Deleteted \"{json_file_path_next}\".")
+
+    return
 
 def main(repository, make_path, dir_stored):
     start_time = time.perf_counter()
