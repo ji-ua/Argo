@@ -62,12 +62,25 @@ def request(repository, dir_path, payload_1, end_cursor, has_next_page, file_num
         while retry_count < retry_limit:
             response = requests.request("POST", url, data=payload, headers=headers)
             json_data = response.json()
-
+            
             if 'errors' in json_data and isinstance(json_data['errors'], list) and 'type' in json_data['errors'][0] and json_data['errors'][0]['type'] == 'RATE_LIMITED':
                 print()
                 print(json_data["errors"][0]["message"])
                 print("To retry, wait at least one hour.")
                 exit(1) # プログラムを終了させる
+
+            if json_data is None:
+                print()
+                print(f"json_data:{json_data}")
+                retry_count += 1
+                print()
+                continue
+
+            if 'data' in json_data and 'repository' in json_data["data"] and json_data["data"]["repository"] is None:
+                print()
+                print(json_data["errors"][0]["message"])
+                print()
+                exit(1)
 
             data = find(json_data, str(file_num), dir_path, data_cpl)
             if data is not None:
@@ -83,7 +96,6 @@ def request(repository, dir_path, payload_1, end_cursor, has_next_page, file_num
         else:
             print(f"Error occerred {retry_limit} times. Stobp retrying.")
             print()
-            print(f"Input repository, \"{repository}\" may be not exist.")
             exit(1)
                 
 
@@ -160,7 +172,7 @@ def export(file_name, dir_path):
             d = datetime.datetime.fromisoformat(committed_utc)
             committedt = d.strftime("%Y-%m/%d %H:%M:%S")
 
-            commitCountAfterFork = countCommit(nameWithOwner, createdAt)
+            commitCountAfterFork = countCommit(nameWithOwner, createdAt, dir_path)
         else:
             print()
             print("TypeError occured at export().")
@@ -187,7 +199,7 @@ def export(file_name, dir_path):
             csvwriter.writerow(value)
 
 # Get the number of commits after "fork" was created.
-def countCommit(nameWithOwner, createdAt):
+def countCommit(nameWithOwner, createdAt, dir_path):
     url = "https://api.github.com/graphql"
     onwer_repository = FileMake.input(nameWithOwner)
 
@@ -221,6 +233,12 @@ def countCommit(nameWithOwner, createdAt):
                 print(json_data["errors"][0]["message"])
                 print("To retry, wait at least one hour.")
                 exit(1) # プログラムを終了させる
+
+            if 'data' in json_data and json_data["data"]["repository"] == None:
+                print()
+                print(json_data["errors"][0]["message"])
+                print()
+                return -1
             
             totalCount = json_data["data"]["repository"]["defaultBranchRef"]["target"]["history"]["totalCount"]
             break
