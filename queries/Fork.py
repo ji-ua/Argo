@@ -62,7 +62,7 @@ def request(repository, dir_path, payload_1, end_cursor, has_next_page, file_num
         while retry_count < retry_limit:
             response = requests.request("POST", url, data=payload, headers=headers)
             json_data = response.json()
-            
+
             if 'errors' in json_data and isinstance(json_data['errors'], list) and 'type' in json_data['errors'][0] and json_data['errors'][0]['type'] == 'RATE_LIMITED':
                 print()
                 print(json_data["errors"][0]["message"])
@@ -131,13 +131,13 @@ def find(json_data, file_name, dir_path, data_cpl):
         end_cursor = json_dict["data"]["repository"]["forks"]["pageInfo"]["endCursor"]
         has_next_page = json_dict["data"]["repository"]["forks"]["pageInfo"]["hasNextPage"]
     except TypeError:
-        removeLastTwoJson(dir_path)
+        removeLastJson(dir_path)
         print(f"TypeError occurred at find().")
         print(f"json_dict:{json_dict}")
         print()
         return None
     except KeyError:
-        removeLastTwoJson(dir_path)
+        removeLastJson(dir_path)
         print(f"KeyError occurred at find().")
         print()                        
         return None
@@ -228,7 +228,7 @@ def countCommit(nameWithOwner, createdAt, dir_path):
             json_data = response.json()
 
             if 'errors' in json_data and isinstance(json_data['errors'], list) and 'type' in json_data['errors'][0] and json_data['errors'][0]['type'] == 'RATE_LIMITED':
-                removeLastTwoJson(dir_path)
+                removeLastJson(dir_path)
                 print()
                 print(json_data["errors"][0]["message"])
                 print("To retry, wait at least one hour.")
@@ -259,12 +259,10 @@ def countCommit(nameWithOwner, createdAt, dir_path):
 
     return totalCount
 
-def removeLastTwoJson(dir_path):
+def removeLastJson(dir_path):
     list_of_files = glob.glob(os.path.join(dir_path, "json", "*.json"))  # Get the list of files from the specified folder
 
-    if len(list_of_files) == 0:
-        file_nextnum = 2
-    else:  
+    if len(list_of_files) != 0:  
         file_intlist = []
         for file in list_of_files:
             filename, fileext = os.path.splitext(os.path.basename(file))
@@ -272,15 +270,11 @@ def removeLastTwoJson(dir_path):
         file_int = [int(s) for s in file_intlist]
         file_nextnum = str(max(file_int) + 1)
 
-    json_file_path = os.path.join(dir_path, "json", str(int(file_nextnum) - 1) + ".json")
     json_file_path_next =os.path.join(dir_path, "json", str(file_nextnum) + ".json")
 
-    if os.path.isfile(json_file_path):
-        os.remove(json_file_path)
     if os.path.isfile(json_file_path_next):
         os.remove(json_file_path_next)
 
-    print(f"Deleteted \"{json_file_path}\".")
     print(f"Deleteted \"{json_file_path_next}\".")
 
     return
