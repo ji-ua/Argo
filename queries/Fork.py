@@ -254,6 +254,7 @@ def validateJson(json_data):
          'type' in json_data['errors'][0] and json_data['errors'][0]['type'] == 'RATE_LIMITED':
         print()
         print(json_data["errors"][0]["message"])
+        print()
         request_with_rate_limit_handling()
         print()
         return False
@@ -280,7 +281,7 @@ def validateJson(json_data):
         print()
         return False
 
-    # invalid
+    # other invalid
     else:
         print("json_data is invalid.")
         print(f"json_data:{json_data}")
@@ -337,12 +338,12 @@ def request_with_rate_limit_handling():
         print(f"\rWaiting for {int(minutes)} minutes and {int(seconds)} seconds...", end="")
         time.sleep(1)
 
-    t1.join()  # スレッドの終了を待つ
-
+    time.sleep(5)
     return
 
 def key_capture_thread(event):
     print("Press Enter to interrupt waiting:", end="", flush=True)
+    print()
     input()
     event.set()
 
