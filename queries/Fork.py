@@ -159,7 +159,7 @@ def export(file_name, dir_path):
         nodes.append(temp_n)
 
     # Write CSV
-    with open(os.path.join(dir_path, "csv", csv_filename), "w", newline="") as csvFile:
+    with open(os.path.join(dir_path, "CSV", csv_filename), "w", newline="") as csvFile:
         csvwriter = csv.writer(
             csvFile, delimiter=",", quotechar='"', quoting=csv.QUOTE_NONNUMERIC
         )
@@ -277,7 +277,7 @@ def validateJson(json_data):
             if not os.listdir("cache/" + owner):
                 os.rmdir("cache/" + owner)
                 print(f"Deleteted cache/{owner}")
-            exec(1)
+            exit(1)
         print()
         return False
 
