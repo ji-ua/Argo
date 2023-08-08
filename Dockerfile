@@ -5,6 +5,7 @@ WORKDIR /home/Argo
 RUN useradd -M -s /bin/false nonroot
 
 COPY requirements.txt ./
+
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
