@@ -1,9 +1,9 @@
 import os
 import re
+import shutil
 
 import FileMake
 import retry_logic
-import shutil
 
 def validate_json(json_data):
     # valid data at Fork.request()
