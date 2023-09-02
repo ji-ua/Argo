@@ -14,6 +14,7 @@ import threading
 import FileMake
 import Download_per
 import error_handler
+import api_key_retriever
 
 
 # Create payload for retrieving Star data
@@ -51,9 +52,7 @@ def request(repository, dir_path, payload_1, end_cursor, has_next_page, file_num
             payload = payload_1 + payload_2
             data_cpl = True
         
-        api_key = os.getenv('GITHUB_API_KEY')
-        if api_key is None:
-            raise Exception("Couldn't find the GitHub API key. Please set it as an environment variable.")
+        api_key = api_key_retriever.get_api_key()
 
         headers = {
             "Authorization": "bearer " + api_key,
@@ -181,9 +180,8 @@ def countCommit(nameWithOwner, createdAt, dir_path):
                + createdAt
                + "\\\"){\\n\\t\\t\\t\\t\\t\\ttotalCount\\n\\t\\t\\t\\t\\t}\\n\\t\\t\\t\\t}\\n\\t\\t\\t}\\n\\t\\t}\\n\\t}\\n}\",\"operationName\":\"commit\"}")
 
-    api_key = os.getenv('GITHUB_API_KEY')
-    if api_key is None:
-        raise Exception("Couldn't find the GitHub API key. Please set it as an environment variable.")
+    api_key = api_key_retriever.get_api_key()
+    
     headers = {
         "Authorization": "bearer " + api_key,
         "Content-Type": "application/json",
