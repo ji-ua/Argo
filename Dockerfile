@@ -1,5 +1,7 @@
 FROM python:3
 
+ENV MPLCONFIGDIR=/tmp/matplotlib
+
 WORKDIR /home/Argo
 
 RUN useradd -M -s /bin/false nonroot
@@ -12,4 +14,4 @@ COPY . .
 
 USER nonroot
 
-ENTRYPOINT ["python", "./argo.py", "fetch", "-q", "Fork"]
+ENTRYPOINT ["python", "./argo.py", "fetch", "-q"]
