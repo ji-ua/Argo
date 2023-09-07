@@ -13,6 +13,7 @@ import threading
 
 import FileMake
 import Download_per
+import error_handler
 
 
 # Create payload for retrieving Star data
@@ -66,7 +67,7 @@ def request(repository, dir_path, payload_1, end_cursor, has_next_page, file_num
             response = requests.request("POST", url, data=payload, headers=headers)
             json_data = response.json()
 
-            if validateJson(json_data):
+            if error_handler.validate_json(json_data):
                 data = find(json_data, str(file_num), dir_path, data_cpl)
                 file_nextnum = data[0]
                 Download_per.download_per(data[3], int(file_nextnum))
@@ -195,7 +196,7 @@ def countCommit(nameWithOwner, createdAt, dir_path):
         response = requests.request("POST", url, data=payload, headers=headers)
         json_data = response.json()
 
-        if validateJson(json_data):
+        if error_handler.validate_json(json_data):
             totalCount = json_data["data"]["repository"]["defaultBranchRef"]["target"]["history"]["totalCount"]
             break
         else:
@@ -229,123 +230,6 @@ def removeLastJson(dir_path):
     print(f"Deleteted \"{json_file_path_next}\".")
 
     return
-
-def validateJson(json_data):
-    # valid data at request()
-    if 'data' in json_data and json_data["data"] is not None and \
-       'repository' in json_data["data"] and json_data["data"]["repository"] is not None and \
-       'forks' in json_data["data"]["repository"] and json_data["data"]["repository"]["forks"] is not None and \
-       'totalCount' in json_data["data"]["repository"]["forks"] and json_data["data"]["repository"]["forks"]["totalCount"] is not None and \
-       'nodes' in json_data["data"]["repository"]["forks"] and json_data["data"]["repository"]["forks"]["nodes"] is not None:
-        return True
-    
-    # valid data at countCommit()
-    elif 'data' in json_data and json_data["data"] is not None and \
-       'repository' in json_data["data"] and json_data["data"]["repository"] is not None and \
-       'defaultBranchRef' in json_data["data"]["repository"] and json_data["data"]["repository"]["defaultBranchRef"] is not None and \
-       'target' in json_data["data"]["repository"]["defaultBranchRef"] and  json_data["data"]["repository"]["defaultBranchRef"]["target"] is not None and \
-       'history' in json_data["data"]["repository"]["defaultBranchRef"]["target"] and  json_data["data"]["repository"]["defaultBranchRef"]["target"]["history"] is not None and \
-       'totalCount' in json_data["data"]["repository"]["defaultBranchRef"]["target"]["history"] and  json_data["data"]["repository"]["defaultBranchRef"]["target"]["history"]["totalCount"] is not None:
-        return True
-    
-    # RATE_LIMITED
-    # invalid
-    elif 'errors' in json_data and isinstance(json_data['errors'], list) and \
-         'type' in json_data['errors'][0] and json_data['errors'][0]['type'] == 'RATE_LIMITED':
-        print()
-        print(json_data["errors"][0]["message"])
-        print()
-        request_with_rate_limit_handling()
-        print()
-        return False
-
-    # invalid
-    elif 'data' in json_data and json_data["data"] is not None and \
-         'repository' in json_data["data"] and json_data["data"]["repository"] is None:
-        print()
-        message = json_data["errors"][0]["message"]
-        print(message)
-        matches = re.findall(r"'(.*?)'", message)
-
-        for match in matches:
-            nameWithOwner = match
-        
-        if os.path.isdir("cache/" + nameWithOwner):
-            owner, repository = FileMake.input(nameWithOwner)
-            shutil.rmtree("cache/" + nameWithOwner)
-            print(f"Deleteted cache/{nameWithOwner}")
-            if not os.listdir("cache/" + owner):
-                os.rmdir("cache/" + owner)
-                print(f"Deleteted cache/{owner}")
-            exit(1)
-        print()
-        return False
-
-    # other invalid
-    else:
-        print("json_data is invalid.")
-        print(f"json_data:{json_data}")
-        print()
-        return False
-    
-
-def request_with_rate_limit_handling():
-    global wait_time_seconds
-
-    url = "https://api.github.com/graphql"
-
-    """
-    query {
-        rateLimit {
-            limit
-            cost
-            remaining
-            resetAt
-        }
-    }
-    """
-    query = "{\"query\":\"query{\\n\\trateLimit{\\n\\t\\tlimit\\n\\t\\tcost\\n\\t\\tremaining\\n\\t\\tresetAt\\n\\t}\\n}\"}"
-
-    api_key = os.getenv('GITHUB_API_KEY')
-    if api_key is None:
-        raise Exception("Couldn't find the GitHub API key. Please set it as an environment variable.")
-
-    headers = {
-        "Authorization": "bearer " + api_key,
-        "Content-Type": "application/json",
-    }
-
-    response = requests.request("POST", url, data=query, headers=headers)
-    json_data = response.json()
-
-    reset_at_str = json_data["data"]["rateLimit"]["resetAt"]
-    reset_at = datetime.datetime.strptime(reset_at_str, "%Y-%m-%dT%H:%M:%SZ")
-    wait_time_seconds = (reset_at - datetime.datetime.utcnow()).total_seconds()
-
-    interrupt_event = threading.Event()
-    # キー入力監視のスレッドを作成
-    t1 = threading.Thread(target=key_capture_thread, args=(interrupt_event,))
-    t1.daemon = True
-    t1.start()
-
-    start_time = time.time()
-    while time.time() - start_time < wait_time_seconds:
-        if interrupt_event.is_set():
-            print("\rInterrupted by user")
-            break
-        remaining_time = wait_time_seconds - (time.time() - start_time)
-        minutes, seconds = divmod(remaining_time, 60)
-        print(f"\rWaiting for {int(minutes)} minutes and {int(seconds)} seconds...", end="")
-        time.sleep(1)
-
-    time.sleep(5)
-    return
-
-def key_capture_thread(event):
-    print("Press Enter to interrupt waiting:", end="", flush=True)
-    print()
-    input()
-    event.set()
 
 def main(repository, make_path, dir_stored):
     start_time = time.perf_counter()
