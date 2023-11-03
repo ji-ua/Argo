@@ -131,17 +131,8 @@ def export(file_name, dir_path):
         url = node["url"]
         createdAt = node["createdAt"]
 
-        created_utc = createdAt.replace("Z", "")
-        d = datetime.datetime.fromisoformat(created_utc)
-        createdt = d.strftime("%Y-%m/%d %H:%M:%S")
-
         if node["defaultBranchRef"] != None:
             committedDate = node["defaultBranchRef"]["target"]["committedDate"]
-
-            committed_utc = committedDate.replace("Z", "")
-            d = datetime.datetime.fromisoformat(committed_utc)
-            committedt = d.strftime("%Y-%m/%d %H:%M:%S")
-
             commitCountAfterFork = countCommit(nameWithOwner, createdAt, dir_path)
         else:
             print()
@@ -150,12 +141,11 @@ def export(file_name, dir_path):
             print(f"Check {url}")
             print()
             committedDate = ""
-            committedt = ""
             commitCountAfterFork = -1
 
         node["commitCountAfterFork"] = commitCountAfterFork
             
-        temp_n = [nameWithOwner, url, createdt, committedt, commitCountAfterFork]
+        temp_n = [nameWithOwner, url, createdAt, committedDate, commitCountAfterFork]
         nodes.append(temp_n)
 
     # Write CSV
